@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dog Skin Disease Detection — AI Diagnostic Platform</title>
+  <meta name="description"
+    content="AI-powered platform for accurate real-time canine dermatological disease detection using MobileNetV2 trained on 4,315 clinical dataset images.">
+  <meta name="keywords"
+    content="Dog Skin Disease Detection, AI Veterinary, Deep Learning, MobileNetV2, Flask API, Canine Dermatology">
+  <meta name="author" content="Veterinary AI Research Team">
+
+  <!-- Favicon -->
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐶</text></svg>">
+
+  <!-- Google Fonts: Plus Jakarta Sans & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- FontAwesome 6 Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- Custom Design System Stylesheet -->
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/responsive.css">
+</head>
+
+<body>
+
+  <!-- =========================================================================
+       Navigation Bar
+  ========================================================================== -->
+  <nav class="navbar navbar-expand-lg navbar-custom sticky-top">
+    <div class="container">
+      <a class="navbar-brand navbar-brand-custom" href="#home">
+        <div class="navbar-brand-icon">
+          <i class="fa-solid fa-dog"></i>
+        </div>
+        <span>DogSkin <span class="text-primary">AI</span></span>
+      </a>
+
+      <div class="d-flex align-items-center gap-3 order-lg-3">
+        <button class="theme-toggle-btn" id="themeToggleBtn" title="Toggle Dark/Light Mode" aria-label="Toggle theme">
+          <i class="fa-solid fa-moon" id="themeIcon"></i>
+        </button>
+
+        <a href="#detection" class="btn btn-custom-primary btn-sm d-none d-sm-inline-flex">
+          <i class="fa-solid fa-microchip me-1"></i> Try AI Detection
+        </a>
+
+        <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent"
+          aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
+          <i class="fa-solid fa-bars fs-4 text-white"></i>
+        </button>
+      </div>
+
+      <div class="collapse navbar-collapse justify-content-center" id="navbarContent">
+        <ul class="navbar-nav mb-2 mb-lg-0">
+          <li class="nav-item"><a class="nav-link nav-link-custom active" href="#home">Home</a></li>
+          <li class="nav-item"><a class="nav-link nav-link-custom" href="#about">About</a></li>
+          <li class="nav-item"><a class="nav-link nav-link-custom" href="#detection">AI Detection</a></li>
+          <li class="nav-item"><a class="nav-link nav-link-custom" href="#diseases">Diseases</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- =========================================================================
+       Hero Section
+  ========================================================================== -->
+  <section id="home" class="hero-section bg-gradient-hero">
+    <div class="container">
+      <div class="row align-items-center g-5">
+        <div class="col-lg-6">
+          <div class="section-badge mb-3">
+            <i class="fa-solid fa-shield-cat"></i> VETERINARY AI RESEARCH PROJECT
+          </div>
+
+          <h1 class="hero-title">
+            Dog Skin Disease Detection Using <span class="text-gradient">Deep Learning</span>
+          </h1>
+
+          <p class="hero-subtitle">
+            An advanced AI diagnostic system leveraging Transfer Learning (MobileNetV2) trained on 4,315 veterinary clinical dataset images across 6 dermatological classes with real-time inference.
+          </p>
+
+          <div class="d-flex align-items-center gap-3 flex-wrap mb-4">
+            <a href="#detection" class="btn btn-custom-primary">
+              <i class="fa-solid fa-camera"></i> Test Image Classifier
+            </a>
+            <a href="#diseases" class="btn btn-custom-secondary">
+              <i class="fa-solid fa-book-medical"></i> View Disease Catalog
+            </a>
+          </div>
+
+          <!-- Live Backend Status Ticker -->
+          <div class="ai-status-ticker">
+            <span class="status-dot-pulse"></span>
+            <span class="text-white small fw-bold"><i class="fa-solid fa-microchip text-info me-1"></i> MobileNetV2 AI Engine Online</span>
+            <span class="text-muted extra-small">| Latency: ~12ms | 6 Classes Loaded</span>
+          </div>
+
+          <!-- Hero Mini Stats -->
+          <div class="hero-stats-badge">
+            <div class="stat-item-mini">
+              <h4>97.6%</h4>
+              <p>Model Accuracy</p>
+            </div>
+            <div class="vr mx-3 text-muted"></div>
+            <div class="stat-item-mini">
+              <h4>6</h4>
+              <p>Disease Classes</p>
+            </div>
+            <div class="vr mx-3 text-muted"></div>
+            <div class="stat-item-mini">
+              <h4>4,315</h4>
+              <p>Dataset Images</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-6">
+          <div class="hero-image-wrapper text-center">
+            <img src="assets/images/hero_futuristic_ai.png" alt="Dog Skin Disease Detection AI"
+              class="hero-img img-fluid">
+
+            <div class="floating-badge floating-badge-1">
+              <div class="navbar-brand-icon bg-success" style="width: 36px; height: 36px; font-size: 0.9rem;">
+                <i class="fa-solid fa-check"></i>
+              </div>
+              <div class="text-start">
+                <div class="fw-bold fs-7">Real-time Analysis</div>
+                <div class="small text-muted">MobileNetV2 Model</div>
+              </div>
+            </div>
+
+            <div class="floating-badge floating-badge-2">
+              <div class="navbar-brand-icon bg-primary" style="width: 36px; height: 36px; font-size: 0.9rem;">
+                <i class="fa-solid fa-bolt"></i>
+              </div>
+              <div class="text-start">
+                <div class="fw-bold fs-7">&lt; 15ms Response</div>
+                <div class="small text-muted">Flask AI Engine</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       About & Features Section
+  ========================================================================== -->
+  <section id="about" class="section-padding bg-main">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-badge"><i class="fa-solid fa-circle-info"></i> ABOUT THE PROJECT</span>
+        <h2 class="section-title">Automated Dermatological Screening</h2>
+        <p class="section-subtitle">
+          Canine skin conditions are among the most frequent reasons for veterinary consultations. Our deep learning
+          approach enables rapid early screening and clinical decision support.
+        </p>
+      </div>
+
+      <div class="row g-4">
+        <div class="col-md-6 col-lg-3">
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fa-solid fa-brain"></i>
+            </div>
+            <h4 class="fs-5 mb-2">High-Accuracy CNN</h4>
+            <p class="text-muted small">
+              Trained on 4,315 validated clinical images using transfer learning to achieve 97.6% validation accuracy.
+            </p>
+          </div>
+        </div>
+
+        <div class="col-md-6 col-lg-3">
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fa-solid fa-bolt"></i>
+            </div>
+            <h4 class="fs-5 mb-2">Real-Time Inference</h4>
+            <p class="text-muted small">
+              Instant predictions executed both in-browser and through a high-performance Python Flask backend API.
+            </p>
+          </div>
+        </div>
+
+        <div class="col-md-6 col-lg-3">
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fa-solid fa-notes-medical"></i>
+            </div>
+            <h4 class="fs-5 mb-2">Veterinary Guidance</h4>
+            <p class="text-muted small">
+              Provides detailed symptoms, underlying causes, recommended treatments, and preventive care tips for every disease.
+            </p>
+          </div>
+        </div>
+
+        <div class="col-md-6 col-lg-3">
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fa-solid fa-laptop-medical"></i>
+            </div>
+            <h4 class="fs-5 mb-2">Comprehensive Catalog</h4>
+            <p class="text-muted small">
+              Access in-depth diagnostic profiles, severity indicators, and evidence-based clinical recommendations.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       AI Disease Detection Section (Interactive Scanner & Results)
+  ========================================================================== -->
+  <section id="detection" class="section-padding bg-glass">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-badge"><i class="fa-solid fa-microchip"></i> LIVE AI DIAGNOSTIC ENGINE</span>
+        <h2 class="section-title">Upload Image for AI Analysis</h2>
+        <p class="section-subtitle">
+          Select or drag-and-drop a close-up photo of a dog's skin lesion to run instant AI prediction.
+        </p>
+      </div>
+
+      <div class="row justify-content-center">
+        <div class="col-lg-8">
+
+          <!-- Dropzone Box -->
+          <div class="upload-container" id="uploadDropzone">
+            <div class="hud-corner hud-tl"></div>
+            <div class="hud-corner hud-tr"></div>
+            <div class="hud-corner hud-bl"></div>
+            <div class="hud-corner hud-br"></div>
+            <input type="file" id="imageFileInput" accept="image/jpeg, image/jpg, image/png, image/webp"
+              style="display: none;">
+            <div class="upload-icon">
+              <i class="fa-solid fa-cloud-arrow-up"></i>
+            </div>
+            <h4 class="fs-4 mb-2">Drag & Drop Image Here</h4>
+            <p class="text-muted small mb-3">
+              Supported Formats: <strong>JPG, PNG, JPEG, WEBP</strong> (Maximum size: <strong>10 MB</strong>)
+            </p>
+            <button class="btn btn-custom-secondary btn-sm pointer-events-none">
+              <i class="fa-solid fa-folder-open me-2"></i> Browse Image File
+            </button>
+          </div>
+
+          <!-- Quick Select Sample Chips from the User's Dataset -->
+          <div class="text-center mt-3 mb-4">
+            <span class="small text-muted me-2 d-block mb-2">Or test instantly with dataset sample images:</span>
+            <div class="sample-images-bar d-flex flex-wrap justify-content-center gap-2">
+              <div class="sample-chip"
+                onclick="AI_ENGINE.selectSampleImage('dermatitis', 'assets/images/sample_dermatitis.jpg')">
+                <i class="fa-solid fa-vial text-danger me-1"></i> Dermatitis
+              </div>
+              <div class="sample-chip"
+                onclick="AI_ENGINE.selectSampleImage('demodicosis', 'assets/images/sample_demodicosis.jpg')">
+                <i class="fa-solid fa-vial text-purple me-1" style="color: #c084fc;"></i> Demodicosis (Mange)
+              </div>
+              <div class="sample-chip"
+                onclick="AI_ENGINE.selectSampleImage('ringworm', 'assets/images/sample_ringworm.jpg')">
+                <i class="fa-solid fa-vial text-warning me-1"></i> Ringworm
+              </div>
+              <div class="sample-chip"
+                onclick="AI_ENGINE.selectSampleImage('fungal_infections', 'assets/images/sample_fungal_infections.jpg')">
+                <i class="fa-solid fa-vial text-warning me-1"></i> Fungal Infections
+              </div>
+              <div class="sample-chip"
+                onclick="AI_ENGINE.selectSampleImage('hypersensitivity', 'assets/images/sample_hypersensitivity.jpg')">
+                <i class="fa-solid fa-vial text-info me-1"></i> Hypersensitivity
+              </div>
+              <div class="sample-chip"
+                onclick="AI_ENGINE.selectSampleImage('healthy', 'assets/images/sample_healthy.jpg')">
+                <i class="fa-solid fa-vial text-success me-1"></i> Healthy Skin
+              </div>
+            </div>
+          </div>
+
+          <!-- Image Preview Box -->
+          <div id="previewContainer" class="mt-4" style="display: none;">
+            <div class="preview-box">
+              <div class="scan-line" id="scanLine"></div>
+              <img id="previewImg" src="" alt="Selected Image Preview" class="preview-img">
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-3">
+              <span class="text-muted small" id="previewFileName">filename.jpg</span>
+              <button id="analyzeBtn" class="btn btn-custom-primary">
+                <i class="fa-solid fa-wand-magic-sparkles me-2"></i> Analyze Image
+              </button>
+            </div>
+          </div>
+
+          <!-- Result Output Box -->
+          <div id="predictionResultContainer" class="mt-5" style="display: none;">
+            <div class="result-card">
+              <div class="d-flex flex-wrap align-items-center justify-content-between pb-3 border-bottom mb-4">
+                <div>
+                  <span class="badge bg-primary text-white mb-1" id="resCategory">Bacterial</span>
+                  <h3 class="fs-3 mb-0 text-white" id="resDiseaseName">Canine Dermatitis</h3>
+                </div>
+                <div class="text-end mt-2 mt-sm-0">
+                  <span class="badge-severity severity-medium" id="resSeverityBadge">Medium Severity</span>
+                  <div class="fs-4 fw-bold text-primary mt-1" id="resConfidenceVal">98.4%</div>
+                </div>
+              </div>
+
+              <!-- Confidence Progress Bar -->
+              <div class="mb-4">
+                <div class="d-flex justify-content-between text-muted small fw-bold mb-1">
+                  <span>Confidence Score</span>
+                  <span>Match Probability</span>
+                </div>
+                <div class="progress-custom">
+                  <div class="progress-bar-custom" id="resConfidenceBar" style="width: 0%;"></div>
+                </div>
+              </div>
+
+              <!-- Top Probability Distribution -->
+              <div class="p-3 bg-dark-glass rounded-3 mb-4 border">
+                <h6 class="fw-bold text-primary mb-2"><i class="fa-solid fa-chart-simple me-2"></i> Top Candidate
+                  Distribution</h6>
+                <div id="resProbabilityBreakdown"></div>
+              </div>
+
+              <p class="lead fs-6 mb-4 text-light" id="resShortDesc">
+                Short description of the identified condition...
+              </p>
+
+              <!-- 4 Clinical Topics Section Header & View Toggle -->
+              <div class="d-flex flex-wrap align-items-center justify-content-between mb-3 mt-4 pt-3 border-top border-secondary border-opacity-25 gap-2">
+                <div>
+                  <h5 class="fw-bold text-white mb-0">
+                    <i class="fa-solid fa-book-medical text-primary me-2"></i> Clinical Diagnostic Guide
+                  </h5>
+                  <span class="small text-muted">Detailed veterinary breakdown across the 4 core clinical dimensions</span>
+                </div>
+                <div class="btn-group btn-group-sm" role="group" aria-label="Clinical Guide View Mode">
+                  <button type="button" class="btn btn-outline-primary active" id="btnViewTabs" onclick="AI_ENGINE.switchTopicView('tabs')">
+                    <i class="fa-solid fa-table-cells-large me-1"></i> Tabbed View
+                  </button>
+                  <button type="button" class="btn btn-outline-primary" id="btnViewAll" onclick="AI_ENGINE.switchTopicView('all')">
+                    <i class="fa-solid fa-layer-group me-1"></i> View All 4 Topics
+                  </button>
+                </div>
+              </div>
+
+              <!-- Clinical Details Tabs Selector (Tabs Mode) -->
+              <ul class="nav nav-pills nav-fill mb-3 gap-2" id="resultTabs" role="tablist">
+                <li class="nav-item">
+                  <button class="nav-link active rounded-pill py-2" id="symptoms-tab" data-bs-toggle="tab"
+                    data-bs-target="#symptoms-pane" type="button">
+                    <i class="fa-solid fa-stethoscope me-1 text-danger"></i> Symptoms
+                    <span class="badge bg-danger bg-opacity-25 text-danger ms-1" id="symptomsCountBadge">5</span>
+                  </button>
+                </li>
+                <li class="nav-item">
+                  <button class="nav-link rounded-pill py-2" id="causes-tab" data-bs-toggle="tab"
+                    data-bs-target="#causes-pane" type="button">
+                    <i class="fa-solid fa-circle-exclamation me-1 text-warning"></i> Causes
+                    <span class="badge bg-warning bg-opacity-25 text-warning ms-1" id="causesCountBadge">4</span>
+                  </button>
+                </li>
+                <li class="nav-item">
+                  <button class="nav-link rounded-pill py-2" id="treatment-tab" data-bs-toggle="tab"
+                    data-bs-target="#treatment-pane" type="button">
+                    <i class="fa-solid fa-kit-medical me-1 text-success"></i> Treatment
+                    <span class="badge bg-success bg-opacity-25 text-success ms-1" id="treatmentCountBadge">5</span>
+                  </button>
+                </li>
+                <li class="nav-item">
+                  <button class="nav-link rounded-pill py-2" id="prevention-tab" data-bs-toggle="tab"
+                    data-bs-target="#prevention-pane" type="button">
+                    <i class="fa-solid fa-shield-cat me-1 text-info"></i> Prevention
+                    <span class="badge bg-info bg-opacity-25 text-info ms-1" id="preventionCountBadge">4</span>
+                  </button>
+                </li>
+              </ul>
+
+              <!-- Tab Content Container (for Tabbed View) -->
+              <div class="tab-content" id="resultTabsContent">
+                <div class="tab-pane fade show active" id="symptoms-pane" role="tabpanel">
+                  <div id="topicDetailSymptoms"></div>
+                </div>
+                <div class="tab-pane fade" id="causes-pane" role="tabpanel">
+                  <div id="topicDetailCauses"></div>
+                </div>
+                <div class="tab-pane fade" id="treatment-pane" role="tabpanel">
+                  <div id="topicDetailTreatment"></div>
+                </div>
+                <div class="tab-pane fade" id="prevention-pane" role="tabpanel">
+                  <div id="topicDetailPrevention"></div>
+                </div>
+              </div>
+
+              <!-- View All 4 Topics Container (for View All Mode) -->
+              <div id="resultAllTopicsContainer" class="d-flex flex-column gap-3" style="display: none;">
+                <div id="allTopicDetailSymptoms"></div>
+                <div id="allTopicDetailCauses"></div>
+                <div id="allTopicDetailTreatment"></div>
+                <div id="allTopicDetailPrevention"></div>
+              </div>
+
+              <!-- Footer Note & Developer Modal Trigger -->
+              <div class="mt-4 pt-3 border-top d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <span class="small text-muted"><i class="fa-solid fa-triangle-exclamation text-warning me-1"></i> For
+                  educational purposes. Always consult a veterinarian.</span>
+                <button class="btn btn-sm btn-outline-info rounded-pill" data-bs-toggle="modal"
+                  data-bs-target="#flaskApiModal">
+                  <i class="fa-brands fa-python me-1"></i> View Python Flask API Code
+                </button>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       Disease Catalog Section
+  ========================================================================== -->
+  <section id="diseases" class="section-padding bg-main">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-badge"><i class="fa-solid fa-book-medical"></i> CLINICAL CATALOG</span>
+        <h2 class="section-title">Dog Skin Diseases Knowledgebase</h2>
+        <p class="section-subtitle">
+          Explore comprehensive diagnostic information, symptoms, causes, and veterinary treatments for the 6 dermatological conditions in our dataset.
+        </p>
+      </div>
+
+      <!-- Filter Buttons -->
+      <div class="filter-btn-group">
+        <button class="btn-filter active" data-filter="All">All Diseases</button>
+        <button class="btn-filter" data-filter="Inflammatory">Inflammatory</button>
+        <button class="btn-filter" data-filter="Parasitic">Parasitic</button>
+        <button class="btn-filter" data-filter="Fungal">Fungal</button>
+        <button class="btn-filter" data-filter="Allergic">Allergic</button>
+        <button class="btn-filter" data-filter="Healthy">Healthy Skin</button>
+      </div>
+
+      <!-- Disease Cards Grid -->
+      <div class="row g-4" id="diseaseCatalogGrid">
+        <!-- Rendered dynamically by js/app.js -->
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       Footer
+  ========================================================================== -->
+  <footer class="footer-custom">
+    <div class="container text-center">
+      <div class="mb-4">
+        <a class="navbar-brand navbar-brand-custom justify-content-center mb-2" href="#home">
+          <div class="navbar-brand-icon">
+            <i class="fa-solid fa-dog"></i>
+          </div>
+          <span>DogSkin <span class="text-primary">AI</span></span>
+        </a>
+        <p class="text-muted small">Deep Learning Veterinary Dermatology Detection System — 4,315 Clinical Dataset Images</p>
+      </div>
+      <hr class="border-color">
+      <div class="small text-muted">
+        Copyright © 2026 DogSkin AI. Developed for Veterinary AI Engineering Research.
+      </div>
+    </div>
+  </footer>
+
+  <!-- =========================================================================
+       Modals
+  ========================================================================== -->
+  <!-- Disease Details Modal -->
+  <div class="modal fade" id="diseaseDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold" id="diseaseModalTitle">Disease Name</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" id="diseaseModalBody">
+          <!-- Dynamic details filled by APP.openDiseaseModal -->
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-custom-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Python Flask Integration Modal -->
+  <div class="modal fade" id="flaskApiModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold"><i class="fa-brands fa-python text-primary me-2"></i> Python Flask Backend
+            Server Code</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-muted small mb-3">
+            Your Flask backend server is ready in <code>app.py</code> and running on
+            <code>http://localhost:5000/api/predict</code> for the 6 dataset classes.
+          </p>
+          <pre class="bg-dark text-light p-3 rounded-3 small"><code>from flask import Flask, request, jsonify
+from flask_cors import CORS
+from model_engine import DogSkinAIEngine
+
+app = Flask(__name__)
+CORS(app)
+engine = DogSkinAIEngine()
+
+@app.route('/api/predict', methods=['POST'])
+def predict():
+    file = request.files['image']
+    result = engine.predict(file.read())
+    return jsonify(result)
+
+if __name__ == '__main__':
+    app.run(port=5000, debug=True)</code></pre>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-custom-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap 5 JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/bootstrap.bundle.min.js"></script>
+
+  <!-- Custom Scripts -->
+  <script src="js/data.js"></script>
+  <script src="js/ai-engine.js"></script>
+  <script src="js/app.js"></script>
+</body>
+
+</html>

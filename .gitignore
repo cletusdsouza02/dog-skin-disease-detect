@@ -1,0 +1,20 @@
+# Ignore large datasets and raw training zip archives (>100MB)
+dataset.zip
+dataset/
+
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.env
+.venv/
+env/
+venv/
+
+# IDE files
+.vscode/
+.idea/
+.DS_Store
+
+# Temporary logs
+*.log
