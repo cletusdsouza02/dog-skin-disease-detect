@@ -1,0 +1,15 @@
+dataset/
+dataset.zip
+__pycache__/
+*.pyc
+.git
+.vscode/
+test_*.py
+train_*.py
+prepare_dataset.py
+generate_dataset_structure.py
+saved_models/*.keras
+saved_models/*.h5
+Dockerfile
+Procfile
+run_app.bat

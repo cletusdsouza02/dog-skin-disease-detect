@@ -1,7 +1,8 @@
 flask>=3.0.0
 flask-cors>=4.0.0
 Pillow>=10.0.0
-numpy>=1.24.0
-tensorflow>=2.15.0
+numpy>=1.24.0,<2.0.0
+ai-edge-litert>=1.0.0; python_version >= '3.12'
+tflite-runtime>=2.14.0; python_version < '3.12'
 gunicorn>=21.2.0
 requests>=2.31.0

@@ -662,7 +662,7 @@ class DogSkinAIEngine:
     def __init__(self):
         self.model_name = "MobileNetV2 Transfer Learning CNN (6-Class Dataset)"
         self.input_shape = (224, 224, 3)
-        # Class indices matching TensorFlow categorical ordering:
+        # Class indices matching categorical ordering:
         # 0: Dermatitis, 1: Fungal_infections, 2: Healthy, 3: Hypersensitivity, 4: demodicosis, 5: ringworm
         self.disease_ids = [
             "dermatitis",
@@ -673,26 +673,78 @@ class DogSkinAIEngine:
             "ringworm"
         ]
         self.loaded_keras_model = None
+        self.tflite_interpreter = None
+        self.tflite_input_details = None
+        self.tflite_output_details = None
         self._try_load_saved_model()
 
+    def _get_tflite_interpreter_cls(self):
+        """Attempts to import LiteRT / TFLite Interpreter across various runtimes."""
+        # 1. Google AI Edge LiteRT (Modern runtime for Python 3.9 - 3.13)
+        try:
+            from ai_edge_litert.interpreter import Interpreter
+            return Interpreter
+        except ImportError:
+            pass
+
+        # 2. tflite-runtime (Lightweight runtime for Python 3.8 - 3.11)
+        try:
+            import tflite_runtime.interpreter as tflite
+            return tflite.Interpreter
+        except ImportError:
+            pass
+
+        # 3. Full TensorFlow Lite (Local dev / testing fallback)
+        try:
+            import tensorflow as tf
+            return tf.lite.Interpreter
+        except ImportError:
+            pass
+
+        return None
+
     def _try_load_saved_model(self):
-        """Attempts to load a trained .keras or .h5 model if present in saved_models/."""
-        possible_paths = [
-            os.path.join("saved_models", "mobilenetv2_best.keras"),
-            os.path.join("saved_models", "mobilenetv2_model.keras"),
-            os.path.join("saved_models", "mobilenetv2_best.h5"),
-            os.path.join("saved_models", "DogSkin_MobileNetV2.keras")
+        """Attempts to load a lightweight TFLite model first (for Vercel/serverless), then .keras fallback."""
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+
+        # 1. Try loading optimized TFLite model (2.8 MB, ideal for Vercel 500MB limit)
+        tflite_paths = [
+            os.path.join(base_dir, "saved_models", "dog_skin_mobilenetv2.tflite"),
+            os.path.join("saved_models", "dog_skin_mobilenetv2.tflite")
         ]
-        for path in possible_paths:
+        for tpath in tflite_paths:
+            if os.path.exists(tpath):
+                interpreter_cls = self._get_tflite_interpreter_cls()
+                if interpreter_cls is not None:
+                    try:
+                        self.tflite_interpreter = interpreter_cls(model_path=tpath)
+                        self.tflite_interpreter.allocate_tensors()
+                        self.tflite_input_details = self.tflite_interpreter.get_input_details()
+                        self.tflite_output_details = self.tflite_interpreter.get_output_details()
+                        print(f" [OK] Loaded optimized LiteRT/TFLite model from: {tpath}")
+                        return
+                    except Exception as e:
+                        print(f" [!] Notice: Could not initialize TFLite model ({e})")
+
+        # 2. Try loading full Keras model (.keras or .h5) if TensorFlow is available
+        possible_keras_paths = [
+            os.path.join(base_dir, "saved_models", "mobilenetv2_best.keras"),
+            os.path.join("saved_models", "mobilenetv2_best.keras"),
+            os.path.join(base_dir, "saved_models", "mobilenetv2_model.keras"),
+            os.path.join("saved_models", "mobilenetv2_model.keras")
+        ]
+        for path in possible_keras_paths:
             if os.path.exists(path):
                 try:
                     os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
                     import tensorflow as tf
                     self.loaded_keras_model = tf.keras.models.load_model(path, compile=False)
-                    print(f" [OK] Loaded neural network model from: {path}")
+                    print(f" [OK] Loaded Keras neural network model from: {path}")
                     return
                 except Exception as e:
-                    print(f" [!] Notice: Could not load {path} ({e}). Using feature-analysis inference engine.")
+                    print(f" [!] Notice: Could not load Keras model {path} ({e})")
+
+        print(" [i] Notice: Running in calibrated feature-analysis inference mode.")
 
     def preprocess_image(self, image_bytes):
         """Loads image bytes, resizes to 224x224, and returns both 0-255 and normalized arrays."""
@@ -735,7 +787,18 @@ class DogSkinAIEngine:
         """Full inference pipeline returning JSON-ready diagnosis."""
         _, arr_255, arr_norm = self.preprocess_image(image_bytes)
 
-        if self.loaded_keras_model is not None:
+        if self.tflite_interpreter is not None:
+            try:
+                # Preprocessing: batch input of shape (1, 224, 224, 3) with float32 [0, 255]
+                batch_input = np.expand_dims(arr_255, axis=0).astype(np.float32)
+                self.tflite_interpreter.set_tensor(self.tflite_input_details[0]["index"], batch_input)
+                self.tflite_interpreter.invoke()
+                preds = self.tflite_interpreter.get_tensor(self.tflite_output_details[0]["index"])[0]
+                probs = preds / np.sum(preds)
+            except Exception as e:
+                print(f" [!] TFLite inference exception: {e}")
+                probs = self.analyze_image_features(arr_norm)
+        elif self.loaded_keras_model is not None:
             try:
                 # The MobileNetV2 architecture expects [0, 255] RGB float inputs
                 batch_input = np.expand_dims(arr_255, axis=0)
@@ -776,14 +839,19 @@ class DogSkinAIEngine:
             for i in range(3, len(prob_breakdown)):
                 prob_breakdown[i]["value"] = 0.0
 
+        framework_name = (
+            "MobileNetV2 LiteRT / TFLite (Vercel Serverless Optimized)" if self.tflite_interpreter is not None
+            else ("MobileNetV2 Deep Learning CNN" if self.loaded_keras_model is not None else "Calibrated Dermatological Feature Engine")
+        )
+
         return {
             "status": "success",
             "model_info": {
                 "architecture": self.model_name,
-                "framework": "MobileNetV2 Deep Learning CNN",
+                "framework": framework_name,
                 "dataset_classes": 6,
                 "input_resolution": "224x224 RGB",
-                "weights_loaded": self.loaded_keras_model is not None
+                "weights_loaded": (self.tflite_interpreter is not None or self.loaded_keras_model is not None)
             },
             "disease": target_meta,
             "confidence": confidence,
