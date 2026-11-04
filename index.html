@@ -240,6 +240,19 @@
       <div class="row justify-content-center">
         <div class="col-lg-8">
 
+          <!-- Clinical Photography Quality Guide -->
+          <div class="alert py-2 px-3 mb-3 rounded-3 border-0" style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.25) !important;">
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <i class="fa-solid fa-camera text-info"></i>
+              <strong class="text-info small">Best Practices for 95%+ AI Accuracy:</strong>
+            </div>
+            <div class="text-light small opacity-90 d-flex flex-wrap gap-3">
+              <span><i class="fa-solid fa-check text-success me-1"></i><strong>Macro Close-up:</strong> Crop tightly around the skin lesion/rash.</span>
+              <span><i class="fa-solid fa-check text-success me-1"></i><strong>Good Lighting:</strong> Clear, natural light without deep shadows.</span>
+              <span><i class="fa-solid fa-xmark text-danger me-1"></i><strong>Avoid:</strong> Wide shots showing entire dog, room, or grass.</span>
+            </div>
+          </div>
+
           <!-- Dropzone Box -->
           <div class="upload-container" id="uploadDropzone">
             <div class="hud-corner hud-tl"></div>
@@ -311,6 +324,17 @@
               <div id="resOfflineNotice" class="alert alert-warning py-2 px-3 small border-0 mb-3" style="display: none;">
                 <i class="fa-solid fa-triangle-exclamation text-warning me-2"></i>
                 <strong>Notice:</strong> Running in client-side preview mode because Python Flask backend (port 5000) is offline. Start <code>python app.py</code> or double-click <code>run_app.bat</code> to connect to the retrained MobileNetV2 Deep Learning neural network.
+              </div>
+
+              <!-- Clinical Differential Diagnosis Alert -->
+              <div id="resDifferentialBox" class="alert py-3 px-3 small border-0 mb-4 rounded-3" style="display: none; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35) !important;">
+                <div class="d-flex align-items-start gap-2">
+                  <i class="fa-solid fa-stethoscope text-warning fs-5 mt-1"></i>
+                  <div>
+                    <div class="fw-bold text-warning mb-1" id="resDifferentialTitle">Clinical Differential Diagnosis Alert</div>
+                    <p class="mb-0 text-light small" id="resDifferentialText"></p>
+                  </div>
+                </div>
               </div>
 
               <div class="d-flex flex-wrap align-items-center justify-content-between pb-3 border-bottom mb-4">

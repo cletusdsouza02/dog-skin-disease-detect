@@ -479,10 +479,11 @@ class DogSkinClientEngine {
     if (data.is_backend) {
       if (offlineNotice) offlineNotice.style.display = "none";
       if (badgeContainer) {
+        const fwName = data.model_info?.framework || "ResNet-50 Deep Learning Neural Network";
         badgeContainer.innerHTML = `
           <span class="badge bg-primary text-white" id="resCategory">${d.category}</span>
           <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50">
-            <i class="fa-solid fa-microchip me-1"></i> MobileNetV2 Neural Network
+            <i class="fa-solid fa-microchip me-1"></i> ${fwName}
           </span>
         `;
       }
@@ -501,6 +502,16 @@ class DogSkinClientEngine {
     const catEl = document.getElementById("resCategory");
     if (catEl) catEl.textContent = d.category;
     document.getElementById("resDiseaseName").textContent = d.name;
+
+    // Display Differential Diagnosis Alert if borderline overlap detected
+    const diffBox = document.getElementById("resDifferentialBox");
+    const diffText = document.getElementById("resDifferentialText");
+    if (data.differential_diagnosis && data.differential_diagnosis.is_borderline) {
+      if (diffBox) diffBox.style.display = "block";
+      if (diffText) diffText.textContent = data.differential_diagnosis.note;
+    } else {
+      if (diffBox) diffBox.style.display = "none";
+    }
 
     const sevBadge = document.getElementById("resSeverityBadge");
     sevBadge.textContent = d.severity;
