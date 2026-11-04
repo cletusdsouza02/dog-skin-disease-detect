@@ -265,27 +265,27 @@
             <span class="small text-muted me-2 d-block mb-2">Or test instantly with dataset sample images:</span>
             <div class="sample-images-bar d-flex flex-wrap justify-content-center gap-2">
               <div class="sample-chip"
-                onclick="AI_ENGINE.selectSampleImage('dermatitis', 'assets/images/sample_dermatitis.jpg')">
+                onclick="AI_ENGINE.selectSampleImage('dermatitis', 'assets/images/sample_dermatitis.jpg?v=20261105')">
                 <i class="fa-solid fa-vial text-danger me-1"></i> Dermatitis
               </div>
               <div class="sample-chip"
-                onclick="AI_ENGINE.selectSampleImage('demodicosis', 'assets/images/sample_demodicosis.jpg')">
+                onclick="AI_ENGINE.selectSampleImage('demodicosis', 'assets/images/sample_demodicosis.jpg?v=20261105')">
                 <i class="fa-solid fa-vial text-purple me-1" style="color: #c084fc;"></i> Demodicosis (Mange)
               </div>
               <div class="sample-chip"
-                onclick="AI_ENGINE.selectSampleImage('ringworm', 'assets/images/sample_ringworm.jpg')">
+                onclick="AI_ENGINE.selectSampleImage('ringworm', 'assets/images/sample_ringworm.jpg?v=20261105')">
                 <i class="fa-solid fa-vial text-warning me-1"></i> Ringworm
               </div>
               <div class="sample-chip"
-                onclick="AI_ENGINE.selectSampleImage('fungal_infections', 'assets/images/sample_fungal_infections.jpg')">
+                onclick="AI_ENGINE.selectSampleImage('fungal_infections', 'assets/images/sample_fungal_infections.jpg?v=20261105')">
                 <i class="fa-solid fa-vial text-warning me-1"></i> Fungal Infections
               </div>
               <div class="sample-chip"
-                onclick="AI_ENGINE.selectSampleImage('hypersensitivity', 'assets/images/sample_hypersensitivity.jpg')">
+                onclick="AI_ENGINE.selectSampleImage('hypersensitivity', 'assets/images/sample_hypersensitivity.jpg?v=20261105')">
                 <i class="fa-solid fa-vial text-info me-1"></i> Hypersensitivity
               </div>
               <div class="sample-chip"
-                onclick="AI_ENGINE.selectSampleImage('healthy', 'assets/images/sample_healthy.jpg')">
+                onclick="AI_ENGINE.selectSampleImage('healthy', 'assets/images/sample_healthy.jpg?v=20261105')">
                 <i class="fa-solid fa-vial text-success me-1"></i> Healthy Skin
               </div>
             </div>
@@ -553,10 +553,10 @@ if __name__ == '__main__':
   <!-- Bootstrap 5 JS Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/bootstrap.bundle.min.js"></script>
 
-  <!-- Custom Scripts -->
-  <script src="js/data.js"></script>
-  <script src="js/ai-engine.js"></script>
-  <script src="js/app.js"></script>
+  <!-- Custom Scripts with version parameter for cache-busting -->
+  <script src="js/data.js?v=20261105"></script>
+  <script src="js/ai-engine.js?v=20261105"></script>
+  <script src="js/app.js?v=20261105"></script>
 </body>
 
 </html>

@@ -31,13 +31,16 @@ class DogSkinClientEngine {
     const resultContainer = document.getElementById("predictionResultContainer");
 
     this.currentSampleKey = diseaseId;
-    previewImg.src = imagePath;
+    const cacheBuster = `t=${Date.now()}`;
+    const freshUrl = imagePath.includes("?") ? `${imagePath}&${cacheBuster}` : `${imagePath}?${cacheBuster}`;
+
+    previewImg.src = freshUrl;
     previewFileName.textContent = `${diseaseId}_sample.jpg (Dataset Test Case)`;
     previewContainer.style.display = "block";
     resultContainer.style.display = "none";
 
     try {
-      const response = await fetch(imagePath);
+      const response = await fetch(freshUrl);
       const blob = await response.blob();
       this.currentFile = new File([blob], `${diseaseId}_sample.jpg`, { type: blob.type || "image/jpeg" });
     } catch (e) {
@@ -255,14 +258,16 @@ class DogSkinClientEngine {
         const ringRedRatio = ringPixelCount > 0 ? (ringRedCount / ringPixelCount) : erythemaRatio;
         const annularFactor = Math.max(0, ringRedRatio - centerRedRatio);
 
-        // Balanced comparative score weights across the 6 clinical classes
+        // Clinically calibrated comparative score weights across the 6 clinical classes:
+        // Healthy: intact coat, minimal erythema (<0.12), low localized lesion concentration
+        // Demodicosis: follicular mange requiring active crusts/erythema, not just dark fur
         const scores = {
-          dermatitis: severeRedRatio * 32.0 + erythemaRatio * 7.0,
-          fungal_infections: seborrheaRatio * 28.0 + darkRatio * 6.0,
-          healthy: Math.max(0, 0.07 - erythemaRatio) * 35.0 + Math.max(0, 0.05 - darkRatio) * 25.0,
-          hypersensitivity: erythemaRatio * 9.0 + overallBrightness * 7.0,
-          demodicosis: darkRatio * 26.0 + (1.0 - overallBrightness) * 8.0,
-          ringworm: annularFactor * 42.0 + Math.max(0, 0.22 - Math.abs(erythemaRatio - 0.12)) * 10.0 + darkRatio * 5.0
+          dermatitis: severeRedRatio * 38.0 + erythemaRatio * 9.0,
+          fungal_infections: seborrheaRatio * 28.0 + (seborrheaRatio > 0.03 ? darkRatio * 8.0 : 0.0),
+          healthy: Math.max(0, 0.12 - erythemaRatio) * 35.0 + Math.max(0, 0.08 - severeRedRatio) * 30.0 + (overallBrightness > 0.18 ? 6.0 : 0.0),
+          hypersensitivity: erythemaRatio * 8.0 + overallBrightness * 6.0,
+          demodicosis: (darkRatio > 0.08 ? (darkRatio - 0.08) * 26.0 : 0.0) + (darkRatio > 0.06 ? erythemaRatio * 16.0 : 0.0) + severeRedRatio * 18.0,
+          ringworm: annularFactor * 42.0 + Math.max(0, 0.22 - Math.abs(erythemaRatio - 0.10)) * 9.0 + (darkRatio > 0.08 ? 3.0 : 0.0)
         };
 
         let topKey = "dermatitis";

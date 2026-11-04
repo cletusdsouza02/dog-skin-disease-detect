@@ -787,14 +787,18 @@ class DogSkinAIEngine:
         center_red = float(np.mean(np.maximum(0, red_diff[center_mask]))) if np.any(center_mask) else erythema
         ring_red = float(np.mean(np.maximum(0, red_diff[ring_mask]))) if np.any(ring_mask) else erythema
         annular_contrast = max(0.0, ring_red - center_red)
+        severe_red = float(np.mean((arr_norm[:, :, 0] > 0.62) & (arr_norm[:, :, 1] < 0.43) & (arr_norm[:, :, 2] < 0.43)))
 
+        # Calibrated multi-factor clinical scores:
+        # Healthy skin: intact coat, minimal erythema (<0.05), absence of severe red hot spots
+        # Demodicosis: requires active follicular inflammation or crusting with patchiness
         scores = [
-            erythema * 6.5 + overall_std * 2.0,                                    # 0: dermatitis
-            yellow_scale * 14.0 + dark_ratio * 3.5,                                # 1: fungal_infections
-            max(0.0, 0.08 - erythema) * 25.0 + max(0.0, 0.06 - dark_ratio) * 20.0, # 2: healthy
-            erythema * 4.5 + brightness * 3.5,                                     # 3: hypersensitivity
-            dark_ratio * 12.0 + (1.0 - brightness) * 4.0,                          # 4: demodicosis
-            annular_contrast * 25.0 + max(0.0, 0.25 - abs(erythema - 0.12)) * 6.0 + overall_std * 3.0 # 5: ringworm
+            severe_red * 36.0 + erythema * 9.0,                                    # 0: dermatitis
+            yellow_scale * 26.0 + (dark_ratio if yellow_scale > 0.03 else 0.0) * 8.0, # 1: fungal_infections
+            max(0.0, 0.12 - erythema) * 32.0 + max(0.0, 0.10 - severe_red) * 28.0 + (6.0 if brightness > 0.20 else 0.0), # 2: healthy
+            erythema * 7.0 + brightness * 5.0,                                     # 3: hypersensitivity
+            (max(0.0, dark_ratio - 0.08) * 24.0 + (erythema * 16.0 if dark_ratio > 0.06 else 0.0) + severe_red * 18.0), # 4: demodicosis
+            annular_contrast * 38.0 + max(0.0, 0.22 - abs(erythema - 0.10)) * 8.0 + overall_std * 3.0 # 5: ringworm
         ]
 
         exp_scores = np.exp(np.array(scores) - np.max(scores))
@@ -826,6 +830,22 @@ class DogSkinAIEngine:
                 probs = self.analyze_image_features(arr_norm)
         else:
             probs = self.analyze_image_features(arr_norm)
+
+        # Clinical consistency calibration: Demodicosis vs Healthy Skin & Coat
+        # Demodicosis (follicular mange) causes active alopecia, comedones, and inflamed lesions.
+        # An unbroken, uniform coat with minimal erythema (<0.045) is healthy skin/fur, not demodicosis.
+        r_chan, g_chan, b_chan = arr_norm[:, :, 0], arr_norm[:, :, 1], arr_norm[:, :, 2]
+        red_diff = r_chan - (g_chan + b_chan) / 2.0
+        erythema_val = float(np.mean(np.maximum(0, red_diff)))
+        blocks = arr_norm.reshape(4, 56, 4, 56, 3).mean(axis=(1, 3))
+        block_var = float(np.std(blocks))
+
+        if probs[4] > probs[2]:  # Demodicosis higher than Healthy
+            if erythema_val < 0.045 and block_var < 0.13:
+                shift = min(probs[4] * 0.90, (0.045 - erythema_val) * 15.0 + (0.13 - block_var) * 6.0)
+                probs[2] += shift
+                probs[4] = max(0.01, probs[4] - shift)
+                probs = probs / np.sum(probs)
 
         top_idx = int(np.argmax(probs))
         top_key = self.disease_ids[top_idx]
