@@ -111,13 +111,45 @@ def load_datasets(dataset_dir="dataset", img_size=IMG_SIZE, batch_size=BATCH_SIZ
 
 
 def get_data_augmentation():
-    """Returns data augmentation pipeline optimized for dermatological lesion images."""
+    """Returns enhanced data augmentation pipeline optimized for imbalanced dermatological lesion images."""
     return tf.keras.Sequential([
-        layers.RandomRotation(0.12),
-        layers.RandomFlip("horizontal"),
-        layers.RandomZoom(0.1),
-        layers.RandomContrast(0.1),
+        layers.RandomRotation(0.20),
+        layers.RandomFlip("horizontal_and_vertical"),
+        layers.RandomZoom(0.15),
+        layers.RandomContrast(0.15),
+        layers.RandomTranslation(height_factor=0.08, width_factor=0.08),
     ], name="data_augmentation")
+
+
+def compute_balanced_class_weights(dataset_dir="dataset"):
+    """
+    Computes balanced class weights inversely proportional to class frequencies:
+    w_j = total_samples / (n_classes * class_samples)
+    Gives minority classes (like Ringworm with only 73 images) a proportionately higher loss penalty.
+    """
+    train_dir = os.path.join(dataset_dir, "train")
+    class_counts = {}
+    for idx, c in enumerate(CLASS_NAMES):
+        c_path = os.path.join(train_dir, c)
+        count = len(os.listdir(c_path)) if os.path.exists(c_path) else 1
+        class_counts[idx] = count
+
+    total = sum(class_counts.values())
+    n_classes = len(CLASS_NAMES)
+    class_weights = {}
+    print("\n[✓] Computed Balanced Class Weights for Imbalanced Training:")
+    for idx, count in class_counts.items():
+        w = total / (n_classes * count)
+        class_weights[idx] = round(float(w), 3)
+
+    # Targeted clinical sensitivity boost for minority classes with high Dermatitis visual overlap
+    # Ringworm (class 5) and Hypersensitivity (class 3) receive an intentional loss gradient boost
+    class_weights[5] = round(class_weights.get(5, 1.0) * 1.85, 3)  # ringworm
+    class_weights[3] = round(class_weights.get(3, 1.0) * 1.35, 3)  # hypersensitivity
+
+    for idx in range(n_classes):
+        print(f"   * Class {idx} ({CLASS_NAMES[idx]:<18}): {class_counts[idx]:>4} images -> Loss Multiplier: {class_weights[idx]:.3f}x")
+    return class_weights
 
 
 # ==============================================================================
@@ -217,8 +249,8 @@ def build_resnet50(num_classes=NUM_CLASSES, input_shape=(224, 224, 3)):
 # ==============================================================================
 # 5. COMPILATION, TRAINING & TFLITE EXPORT
 # ==============================================================================
-def compile_and_train(model, base_model, train_ds, val_ds=None, model_name="mobilenetv2", epochs=EPOCHS, fine_tune_epochs=3):
-    """Compiles the model and executes two-phase transfer learning & fine-tuning."""
+def compile_and_train(model, base_model, train_ds, val_ds=None, model_name="mobilenetv2", epochs=EPOCHS, fine_tune_epochs=3, class_weights=None):
+    """Compiles the model and executes two-phase transfer learning & fine-tuning with balanced class weights."""
     os.makedirs("saved_models", exist_ok=True)
     best_model_path = f"saved_models/{model_name}_best.keras"
 
@@ -241,13 +273,15 @@ def compile_and_train(model, base_model, train_ds, val_ds=None, model_name="mobi
     print(f" [Phase 1] Training Classifier Head: {model_name}")
     print(f" Total Parameters: {model.count_params():,}")
     print(f" Epochs: {epochs} | Monitored Metric: {monitor_acc}")
+    print(f" Class Weighting: {'Enabled' if class_weights else 'Disabled'}")
     print(f"=======================================================")
 
     history_phase1 = model.fit(
         train_ds,
         validation_data=val_ds,
         epochs=epochs,
-        callbacks=phase1_callbacks
+        callbacks=phase1_callbacks,
+        class_weight=class_weights
     )
 
     history_phase2 = None
@@ -280,7 +314,8 @@ def compile_and_train(model, base_model, train_ds, val_ds=None, model_name="mobi
             train_ds,
             validation_data=val_ds,
             epochs=fine_tune_epochs,
-            callbacks=phase2_callbacks
+            callbacks=phase2_callbacks,
+            class_weight=class_weights
         )
 
     # Save final model weights
@@ -293,6 +328,10 @@ def compile_and_train(model, base_model, train_ds, val_ds=None, model_name="mobi
     with open(class_indices_path, "w", encoding="utf-8") as f:
         json.dump(class_map, f, indent=2)
     print(f"[✓] Saved class index dictionary: {class_indices_path}")
+
+    # Export to optimized TFLite format
+    tflite_path = f"saved_models/dog_skin_{model_name}.tflite"
+    export_to_tflite(model, tflite_path)
 
     return model, history_phase1, history_phase2
 
