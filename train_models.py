@@ -398,6 +398,7 @@ def main():
     print(f"\n[✓] Built architecture: {args.model.upper()} ({model.count_params():,} parameters)")
 
     # 3. Train Model
+    class_weights = compute_balanced_class_weights("dataset")
     t0 = time.time()
     trained_model, h1, h2 = compile_and_train(
         model=model,
@@ -406,7 +407,8 @@ def main():
         val_ds=val_ds,
         model_name=args.model,
         epochs=args.epochs,
-        fine_tune_epochs=args.fine_tune_epochs
+        fine_tune_epochs=args.fine_tune_epochs,
+        class_weights=class_weights
     )
     duration = time.time() - t0
     print(f"\n[✓] Training pipeline finished in {duration:.1f}s!")
