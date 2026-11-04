@@ -313,40 +313,35 @@ const APP = {
     const ticker = document.querySelector(".ai-status-ticker");
     if (!ticker) return;
 
-    try {
-      const res = await fetch("/api/health");
-      if (res.ok) {
-        const data = await res.json();
-        ticker.innerHTML = `
-          <span class="status-dot-pulse"></span>
-          <span class="text-white small fw-bold"><i class="fa-solid fa-server text-success me-1"></i> Flask API Connected (${data.model || 'MobileNetV2'})</span>
-          <span class="text-muted extra-small">| Status: Online | 6 Classes Active</span>
-        `;
-        return;
+    const endpoints = [
+      "/api/health",
+      "http://localhost:5000/api/health",
+      "http://127.0.0.1:5000/api/health"
+    ];
+
+    for (const ep of endpoints) {
+      try {
+        const res = await fetch(ep, { signal: AbortSignal.timeout(2500) });
+        if (res.ok) {
+          const data = await res.json();
+          ticker.innerHTML = `
+            <span class="status-dot-pulse"></span>
+            <span class="text-white small fw-bold"><i class="fa-solid fa-server text-success me-1"></i> Neural Network API Online (${data.model || 'MobileNetV2'})</span>
+            <span class="text-muted extra-small">| 6 Classes Loaded | Real-Time Inference</span>
+          `;
+          return;
+        }
+      } catch (e) {
+        // Continue probing next endpoint
       }
-    } catch (e) {
-      // Backend not running on same origin
     }
 
-    try {
-      const res = await fetch("http://localhost:5000/api/health");
-      if (res.ok) {
-        const data = await res.json();
-        ticker.innerHTML = `
-          <span class="status-dot-pulse"></span>
-          <span class="text-white small fw-bold"><i class="fa-solid fa-server text-success me-1"></i> Flask Backend Online (Port 5000)</span>
-          <span class="text-muted extra-small">| 6 Classes Loaded | Real-Time Inference</span>
-        `;
-        return;
-      }
-    } catch (e) {
-      // Offline / standalone browser mode
-      ticker.innerHTML = `
-        <span class="status-dot-pulse" style="background:#38BDF8; box-shadow:0 0 10px #38BDF8;"></span>
-        <span class="text-white small fw-bold"><i class="fa-solid fa-microchip text-info me-1"></i> Client-Side AI Engine Ready</span>
-        <span class="text-muted extra-small">| Start app.py for Flask GPU/CPU Server</span>
-      `;
-    }
+    // Offline / standalone browser mode
+    ticker.innerHTML = `
+      <span class="status-dot-pulse" style="background:#F59E0B; box-shadow:0 0 10px #F59E0B;"></span>
+      <span class="text-white small fw-bold"><i class="fa-solid fa-triangle-exclamation text-warning me-1"></i> Flask Backend Offline (Run 'python app.py')</span>
+      <span class="text-muted extra-small">| In-Browser Heuristic Fallback Active</span>
+    `;
   }
 };
 

@@ -756,8 +756,13 @@ class DogSkinAIEngine:
 
     def analyze_image_features(self, arr_norm):
         """
-        Calibrated dermatological feature metrics (erythema index, seborrheic scale,
-        hyperpigmentation dark ratio, and texture roughness) to compute probabilities.
+        Multi-dimensional dermatological feature extraction across 6 classes:
+        - Annular ring / peripheral active border (Ringworm)
+        - Intense erythema hot spots (Dermatitis)
+        - Hyperpigmented crusts & follicular casts (Demodicosis)
+        - Seborrheic greasy yellow scale (Fungal/Malassezia)
+        - Scattered papular rash & brightness (Hypersensitivity)
+        - Smooth, low-erythema uniform texture (Healthy)
         """
         r_channel = arr_norm[:, :, 0]
         g_channel = arr_norm[:, :, 1]
@@ -770,13 +775,26 @@ class DogSkinAIEngine:
         yellow_scale = float(np.mean(np.maximum(0, (r_channel + g_channel) / 2.0 - b_channel)))
         dark_ratio = float(np.mean(arr_norm < 0.28))
 
+        # Annular ring detection: compare outer annular ring vs central circular core
+        h, w = arr_norm.shape[:2]
+        y, x = np.ogrid[:h, :w]
+        center_y, center_x = h / 2.0, w / 2.0
+        dist_from_center = np.sqrt((x - center_x)**2 + (y - center_y)**2) / (min(h, w) / 2.0)
+
+        center_mask = dist_from_center < 0.40
+        ring_mask = (dist_from_center >= 0.40) & (dist_from_center <= 0.85)
+
+        center_red = float(np.mean(np.maximum(0, red_diff[center_mask]))) if np.any(center_mask) else erythema
+        ring_red = float(np.mean(np.maximum(0, red_diff[ring_mask]))) if np.any(ring_mask) else erythema
+        annular_contrast = max(0.0, ring_red - center_red)
+
         scores = [
-            erythema * 16.0 + overall_std * 3.0,                     # 0: dermatitis
-            yellow_scale * 12.0 + dark_ratio * 4.0,                 # 1: fungal_infections
-            max(0, 0.45 - erythema) * 8.0 + max(0, 0.35 - overall_std) * 6.0,  # 2: healthy
-            erythema * 10.0 + brightness * 2.0,                     # 3: hypersensitivity
-            dark_ratio * 14.0 + overall_std * 4.5,                  # 4: demodicosis
-            overall_std * 6.0 + max(0, 0.5 - abs(erythema - 0.1)) * 3.0  # 5: ringworm
+            erythema * 6.5 + overall_std * 2.0,                                    # 0: dermatitis
+            yellow_scale * 14.0 + dark_ratio * 3.5,                                # 1: fungal_infections
+            max(0.0, 0.08 - erythema) * 25.0 + max(0.0, 0.06 - dark_ratio) * 20.0, # 2: healthy
+            erythema * 4.5 + brightness * 3.5,                                     # 3: hypersensitivity
+            dark_ratio * 12.0 + (1.0 - brightness) * 4.0,                          # 4: demodicosis
+            annular_contrast * 25.0 + max(0.0, 0.25 - abs(erythema - 0.12)) * 6.0 + overall_std * 3.0 # 5: ringworm
         ]
 
         exp_scores = np.exp(np.array(scores) - np.max(scores))
@@ -851,7 +869,8 @@ class DogSkinAIEngine:
                 "framework": framework_name,
                 "dataset_classes": 6,
                 "input_resolution": "224x224 RGB",
-                "weights_loaded": (self.tflite_interpreter is not None or self.loaded_keras_model is not None)
+                "weights_loaded": (self.tflite_interpreter is not None or self.loaded_keras_model is not None),
+                "is_neural_network": (self.tflite_interpreter is not None or self.loaded_keras_model is not None)
             },
             "disease": target_meta,
             "confidence": confidence,
