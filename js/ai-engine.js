@@ -479,7 +479,7 @@ class DogSkinClientEngine {
     if (data.is_backend) {
       if (offlineNotice) offlineNotice.style.display = "none";
       if (badgeContainer) {
-        const fwName = data.model_info?.framework || "ResNet-50 Deep Learning Neural Network";
+        const fwName = data.model_info?.framework || "MobileNetV2 LiteRT Deep CNN (Production Model)";
         badgeContainer.innerHTML = `
           <span class="badge bg-primary text-white" id="resCategory">${d.category}</span>
           <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50">

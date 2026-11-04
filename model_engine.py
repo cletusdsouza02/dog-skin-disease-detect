@@ -660,7 +660,7 @@ CLASS_KEY_MAPPING = {
 
 class DogSkinAIEngine:
     def __init__(self):
-        self.model_name = "MobileNetV2 Transfer Learning CNN (6-Class Dataset)"
+        self.model_name = "MobileNetV2 LiteRT Deep Learning CNN"
         self.input_shape = (224, 224, 3)
         # Class indices matching categorical ordering:
         # 0: Dermatitis, 1: Fungal_infections, 2: Healthy, 3: Hypersensitivity, 4: demodicosis, 5: ringworm
@@ -676,10 +676,6 @@ class DogSkinAIEngine:
         self.tflite_interpreter = None
         self.tflite_input_details = None
         self.tflite_output_details = None
-        self.svm_classifier = None
-        self.svm_scaler = None
-        self.resnet_extractor = None
-        self.resnet_preprocess = None
         self._try_load_saved_model()
 
     def _get_tflite_interpreter_cls(self):
@@ -708,39 +704,10 @@ class DogSkinAIEngine:
         return None
 
     def _try_load_saved_model(self):
-        """Attempts to load high-precision ResNet-50 + SVM first, then lightweight TFLite, then Keras."""
+        """Loads lightweight production MobileNetV2 LiteRT / TFLite model, with Keras fallback."""
         base_dir = os.path.dirname(os.path.abspath(__file__))
 
-        # 1. Primary High-Precision Engine: ResNet-50 ImageNet + RBF SVM (86.8% - 94.5% Accuracy)
-        svm_paths = [
-            os.path.join(base_dir, "saved_models", "dog_skin_resnet50_svm.joblib"),
-            os.path.join("saved_models", "dog_skin_resnet50_svm.joblib")
-        ]
-        scaler_paths = [
-            os.path.join(base_dir, "saved_models", "dog_skin_resnet50_scaler.joblib"),
-            os.path.join("saved_models", "dog_skin_resnet50_scaler.joblib")
-        ]
-        svm_p = next((p for p in svm_paths if os.path.exists(p)), None)
-        scaler_p = next((p for p in scaler_paths if os.path.exists(p)), None)
-
-        if svm_p and scaler_p:
-            try:
-                import joblib
-                import tensorflow as tf
-                from tensorflow.keras.applications import ResNet50
-                from tensorflow.keras.applications.resnet50 import preprocess_input
-
-                self.svm_classifier = joblib.load(svm_p)
-                self.svm_scaler = joblib.load(scaler_p)
-                self.resnet_extractor = ResNet50(weights="imagenet", include_top=False, pooling="avg", input_shape=(224, 224, 3))
-                self.resnet_preprocess = preprocess_input
-                self.model_name = "ResNet-50 Deep Residual CNN + Non-Linear RBF SVM (86.8% Accuracy)"
-                print(f" [OK] Loaded primary high-precision hybrid model from: {svm_p}")
-                return
-            except Exception as e:
-                print(f" [!] Notice: Could not initialize ResNet-50 + SVM ({e})")
-
-        # 2. Try loading optimized TFLite model (2.8 MB, ideal for Vercel 500MB limit)
+        # 1. Primary Engine: MobileNetV2 LiteRT / TFLite (2.8 MB - ultra-fast inference & low memory)
         tflite_paths = [
             os.path.join(base_dir, "saved_models", "dog_skin_mobilenetv2.tflite"),
             os.path.join("saved_models", "dog_skin_mobilenetv2.tflite")
@@ -754,12 +721,13 @@ class DogSkinAIEngine:
                         self.tflite_interpreter.allocate_tensors()
                         self.tflite_input_details = self.tflite_interpreter.get_input_details()
                         self.tflite_output_details = self.tflite_interpreter.get_output_details()
-                        print(f" [OK] Loaded optimized LiteRT/TFLite model from: {tpath}")
+                        self.model_name = "MobileNetV2 LiteRT Deep CNN (Production Model)"
+                        print(f" [OK] Loaded primary MobileNetV2 LiteRT/TFLite model from: {tpath}")
                         return
                     except Exception as e:
                         print(f" [!] Notice: Could not initialize TFLite model ({e})")
 
-        # 2. Try loading full Keras model (.keras or .h5) if TensorFlow is available
+        # 2. Secondary Engine: Full Keras MobileNetV2 model (.keras)
         possible_keras_paths = [
             os.path.join(base_dir, "saved_models", "mobilenetv2_best.keras"),
             os.path.join("saved_models", "mobilenetv2_best.keras"),
@@ -772,7 +740,8 @@ class DogSkinAIEngine:
                     os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
                     import tensorflow as tf
                     self.loaded_keras_model = tf.keras.models.load_model(path, compile=False)
-                    print(f" [OK] Loaded Keras neural network model from: {path}")
+                    self.model_name = "MobileNetV2 Deep Learning Neural Network"
+                    print(f" [OK] Loaded MobileNetV2 Keras model from: {path}")
                     return
                 except Exception as e:
                     print(f" [!] Notice: Could not load Keras model {path} ({e})")
@@ -823,14 +792,17 @@ class DogSkinAIEngine:
         severe_red = float(np.mean((arr_norm[:, :, 0] > 0.62) & (arr_norm[:, :, 1] < 0.43) & (arr_norm[:, :, 2] < 0.43)))
 
         # Calibrated multi-factor clinical scores:
-        # Healthy skin: intact coat, minimal erythema (<0.05), absence of severe red hot spots
-        # Demodicosis: requires active follicular inflammation or crusting with patchiness
+        # Demodicosis requires active follicular lesions, broken hair, or dark comedones combined with inflammation
+        has_comedones = dark_ratio > 0.12 and erythema > 0.04
+        demod_score = severe_red * 20.0 + (16.0 if has_comedones else 0.0) + (10.0 if block_var > 0.15 else 0.0)
+        healthy_score = max(0.0, 0.12 - erythema) * 32.0 + max(0.0, 0.08 - severe_red) * 28.0 + (8.0 if block_var < 0.12 else 0.0)
+
         scores = [
             severe_red * 36.0 + erythema * 9.0,                                    # 0: dermatitis
             yellow_scale * 26.0 + (dark_ratio if yellow_scale > 0.03 else 0.0) * 8.0, # 1: fungal_infections
-            max(0.0, 0.12 - erythema) * 32.0 + max(0.0, 0.10 - severe_red) * 28.0 + (6.0 if brightness > 0.20 else 0.0), # 2: healthy
+            healthy_score,                                                         # 2: healthy
             erythema * 7.0 + brightness * 5.0,                                     # 3: hypersensitivity
-            (max(0.0, dark_ratio - 0.08) * 24.0 + (erythema * 16.0 if dark_ratio > 0.06 else 0.0) + severe_red * 18.0), # 4: demodicosis
+            demod_score,                                                           # 4: demodicosis
             annular_contrast * 38.0 + max(0.0, 0.22 - abs(erythema - 0.10)) * 8.0 + overall_std * 3.0 # 5: ringworm
         ]
 
@@ -839,20 +811,10 @@ class DogSkinAIEngine:
         return probabilities
 
     def predict(self, image_bytes):
-        """Full inference pipeline returning JSON-ready diagnosis."""
+        """Full inference pipeline using MobileNetV2 returning JSON-ready diagnosis."""
         _, arr_255, arr_norm = self.preprocess_image(image_bytes)
 
-        if self.svm_classifier is not None and self.resnet_extractor is not None:
-            try:
-                batch_arr = np.expand_dims(arr_255, axis=0)
-                prep_input = self.resnet_preprocess(batch_arr)
-                feat = self.resnet_extractor.predict(prep_input, verbose=0)
-                feat_scaled = self.svm_scaler.transform(feat)
-                probs = self.svm_classifier.predict_proba(feat_scaled)[0].copy()
-            except Exception as e:
-                print(f" [!] ResNet-50 + SVM inference exception: {e}")
-                probs = self.analyze_image_features(arr_norm)
-        elif self.tflite_interpreter is not None:
+        if self.tflite_interpreter is not None:
             try:
                 # Preprocessing: batch input of shape (1, 224, 224, 3) with float32 [0, 255]
                 batch_input = np.expand_dims(arr_255, axis=0).astype(np.float32)
@@ -876,18 +838,18 @@ class DogSkinAIEngine:
 
         # Clinical consistency calibration: Demodicosis vs Healthy Skin & Coat
         # Demodicosis (follicular mange) causes active alopecia, comedones, and inflamed lesions.
-        # An unbroken, uniform coat with minimal erythema (<0.045) is healthy skin/fur, not demodicosis.
-        r_chan, g_chan, b_chan = arr_norm[:, :, 0], arr_norm[:, :, 1], arr_norm[:, :, 2]
-        red_diff = r_chan - (g_chan + b_chan) / 2.0
-        erythema_val = float(np.mean(np.maximum(0, red_diff)))
+        # An unbroken, smooth coat without severe erythema, ulceration, or comedones is healthy skin/coat.
+        # This prevents false positives on warm/tan or indoor-lit healthy coats.
+        severe_red = float(np.mean((arr_norm[:, :, 0] > 0.60) & (arr_norm[:, :, 1] < 0.42) & (arr_norm[:, :, 2] < 0.42)))
+        dark_ratio = float(np.mean(arr_norm < 0.28))
         blocks = arr_norm.reshape(4, 56, 4, 56, 3).mean(axis=(1, 3))
         block_var = float(np.std(blocks))
 
-        if probs[4] > probs[2]:  # Demodicosis higher than Healthy
-            if erythema_val < 0.045 and block_var < 0.13:
-                shift = min(probs[4] * 0.90, (0.045 - erythema_val) * 15.0 + (0.13 - block_var) * 6.0)
+        if probs[4] > probs[2]:  # Demodicosis predicted higher than Healthy
+            if severe_red < 0.0005 and dark_ratio < 0.045 and block_var < 0.115:
+                shift = probs[4] * 0.95
                 probs[2] += shift
-                probs[4] = max(0.01, probs[4] - shift)
+                probs[4] -= shift
                 probs = probs / np.sum(probs)
 
         top_idx = int(np.argmax(probs))
@@ -925,9 +887,9 @@ class DogSkinAIEngine:
                 }
 
         framework_name = (
-            "ResNet-50 Deep Residual CNN + RBF SVM (86.8% Accuracy)" if self.svm_classifier is not None
-            else ("MobileNetV2 LiteRT / TFLite (Vercel Serverless Optimized)" if self.tflite_interpreter is not None
-            else ("MobileNetV2 Deep Learning CNN" if self.loaded_keras_model is not None else "Calibrated Dermatological Feature Engine"))
+            "MobileNetV2 LiteRT Deep CNN (Production Model)" if self.tflite_interpreter is not None
+            else ("MobileNetV2 Deep Learning Neural Network" if self.loaded_keras_model is not None
+            else "Calibrated Dermatological Feature Engine")
         )
 
         return {
@@ -937,8 +899,8 @@ class DogSkinAIEngine:
                 "framework": framework_name,
                 "dataset_classes": 6,
                 "input_resolution": "224x224 RGB",
-                "weights_loaded": (self.svm_classifier is not None or self.tflite_interpreter is not None or self.loaded_keras_model is not None),
-                "is_neural_network": (self.svm_classifier is not None or self.tflite_interpreter is not None or self.loaded_keras_model is not None)
+                "weights_loaded": (self.tflite_interpreter is not None or self.loaded_keras_model is not None),
+                "is_neural_network": (self.tflite_interpreter is not None or self.loaded_keras_model is not None)
             },
             "disease": target_meta,
             "confidence": confidence,
