@@ -18,3 +18,8 @@ venv/
 
 # Temporary logs
 *.log
+
+# Large model training checkpoints (keep local, use .tflite for cloud)
+saved_models/*.keras
+saved_models/*.h5
+
