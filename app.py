@@ -58,6 +58,7 @@ def serve_dataset(filename):
 
 
 @app.route("/api/health", methods=["GET"])
+@app.route("/health", methods=["GET"])
 def health_check():
     """Health check endpoint to test server connectivity and API status."""
     return jsonify({
@@ -74,6 +75,7 @@ def health_check():
 
 
 @app.route("/api/diseases", methods=["GET"])
+@app.route("/diseases", methods=["GET"])
 def get_diseases():
     """Returns the full knowledgebase catalog of canine skin conditions."""
     return jsonify({
@@ -84,6 +86,7 @@ def get_diseases():
 
 
 @app.route("/api/predict", methods=["POST"])
+@app.route("/predict", methods=["POST"])
 def predict():
     """
     Main prediction endpoint. Receives uploaded image file via multipart/form-data,
