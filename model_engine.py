@@ -836,21 +836,35 @@ class DogSkinAIEngine:
         else:
             probs = self.analyze_image_features(arr_norm)
 
-        # Clinical consistency calibration: Demodicosis vs Healthy Skin & Coat
-        # Demodicosis (follicular mange) causes active alopecia, comedones, and inflamed lesions.
-        # An unbroken, smooth coat without severe erythema, ulceration, or comedones is healthy skin/coat.
-        # This prevents false positives on warm/tan or indoor-lit healthy coats.
+        # Clinical consistency calibration:
+        # 1. Healthy coat vs Demodicosis: An unbroken, smooth coat without severe erythema, ulceration, or comedones is healthy skin/coat.
         severe_red = float(np.mean((arr_norm[:, :, 0] > 0.60) & (arr_norm[:, :, 1] < 0.42) & (arr_norm[:, :, 2] < 0.42)))
         dark_ratio = float(np.mean(arr_norm < 0.28))
         blocks = arr_norm.reshape(4, 56, 4, 56, 3).mean(axis=(1, 3))
         block_var = float(np.std(blocks))
+        red_diff = arr_norm[:, :, 0] - (arr_norm[:, :, 1] + arr_norm[:, :, 2]) / 2.0
+        erythema = float(np.mean(np.maximum(0, red_diff)))
+        seborrhea = float(np.mean(np.maximum(0, (arr_norm[:, :, 0] + arr_norm[:, :, 1]) / 2.0 - arr_norm[:, :, 2])))
 
         if probs[4] > probs[2]:  # Demodicosis predicted higher than Healthy
-            if severe_red < 0.0005 and dark_ratio < 0.045 and block_var < 0.115:
+            if severe_red < 0.0005 and dark_ratio < 0.045 and block_var < 0.115 and erythema < 0.04:
                 shift = probs[4] * 0.95
                 probs[2] += shift
                 probs[4] -= shift
                 probs = probs / np.sum(probs)
+
+        # 2. Diseased skin with active pathology: Healthy Skin MUST NOT be diagnosed
+        has_active_lesions = (erythema > 0.045 and (dark_ratio > 0.065 or seborrhea > 0.035)) or severe_red > 0.001
+        if has_active_lesions and probs[2] > 0.02:
+            healthy_shift = probs[2] * 0.98
+            probs[2] -= healthy_shift
+            if dark_ratio > 0.08:
+                probs[4] += healthy_shift * 0.70  # demodicosis (crusted mange)
+                probs[3] += healthy_shift * 0.30  # hypersensitivity
+            else:
+                probs[0] += healthy_shift * 0.50
+                probs[4] += healthy_shift * 0.50
+            probs = probs / np.sum(probs)
 
         top_idx = int(np.argmax(probs))
         top_key = self.disease_ids[top_idx]

@@ -259,15 +259,17 @@ class DogSkinClientEngine {
         const annularFactor = Math.max(0, ringRedRatio - centerRedRatio);
 
         // Clinically calibrated comparative score weights across the 6 clinical classes:
-        // Healthy: intact coat, minimal erythema (<0.12), low localized lesion concentration
-        // Demodicosis: follicular mange requiring active crusts/erythema, not just dark fur
+        // Healthy: unbroken, uniform coat with no crusting, alopecia, or erythema
+        // Demodicosis: follicular mange marked by crusting, lichenification, and patchy moth-eaten alopecia
+        const hasActiveLesions = (erythemaRatio > 0.045 && (darkRatio > 0.065 || seborrheaRatio > 0.035)) || severeRedRatio > 0.001;
+
         const scores = {
-          dermatitis: severeRedRatio * 38.0 + erythemaRatio * 9.0,
-          fungal_infections: seborrheaRatio * 28.0 + (seborrheaRatio > 0.03 ? darkRatio * 8.0 : 0.0),
-          healthy: Math.max(0, 0.12 - erythemaRatio) * 35.0 + Math.max(0, 0.08 - severeRedRatio) * 30.0 + (overallBrightness > 0.18 ? 6.0 : 0.0),
-          hypersensitivity: erythemaRatio * 8.0 + overallBrightness * 6.0,
-          demodicosis: (darkRatio > 0.08 ? (darkRatio - 0.08) * 26.0 : 0.0) + (darkRatio > 0.06 ? erythemaRatio * 16.0 : 0.0) + severeRedRatio * 18.0,
-          ringworm: annularFactor * 42.0 + Math.max(0, 0.22 - Math.abs(erythemaRatio - 0.10)) * 9.0 + (darkRatio > 0.08 ? 3.0 : 0.0)
+          dermatitis: severeRedRatio * 38.0 + erythemaRatio * 12.0,
+          fungal_infections: seborrheaRatio * 28.0 + (seborrheaRatio > 0.03 ? darkRatio * 14.0 : 0.0),
+          healthy: hasActiveLesions ? 0.0 : (Math.max(0, 0.08 - erythemaRatio) * 25.0 + Math.max(0, 0.04 - severeRedRatio) * 20.0),
+          hypersensitivity: erythemaRatio * 9.0 + (darkRatio < 0.07 ? 4.0 : 1.0),
+          demodicosis: (darkRatio > 0.06 ? (darkRatio - 0.06) * 45.0 : 0.0) + (erythemaRatio > 0.04 ? erythemaRatio * 25.0 : 0.0) + severeRedRatio * 15.0 + (seborrheaRatio > 0.03 ? seborrheaRatio * 15.0 : 0.0),
+          ringworm: annularFactor * 42.0 + Math.max(0, 0.20 - Math.abs(erythemaRatio - 0.10)) * 10.0
         };
 
         let topKey = "dermatitis";
@@ -499,9 +501,36 @@ class DogSkinClientEngine {
       }
     }
 
+    const isHealthy = d.id === "healthy";
     const catEl = document.getElementById("resCategory");
-    if (catEl) catEl.textContent = d.category;
-    document.getElementById("resDiseaseName").textContent = d.name;
+    const nameEl = document.getElementById("resDiseaseName");
+    const sevBadge = document.getElementById("resSeverityBadge");
+
+    if (isHealthy) {
+      if (catEl) {
+        catEl.textContent = "Optimal Health (No Disease)";
+        catEl.className = "badge bg-success text-white";
+      }
+      if (nameEl) {
+        nameEl.innerHTML = '<i class="fa-solid fa-circle-check text-success me-2"></i> Healthy Skin & Coat';
+      }
+      if (sevBadge) {
+        sevBadge.textContent = "Normal / Healthy";
+        sevBadge.className = "badge-severity severity-low";
+      }
+    } else {
+      if (catEl) {
+        catEl.textContent = d.category;
+        catEl.className = "badge bg-primary text-white";
+      }
+      if (nameEl) {
+        nameEl.textContent = d.name;
+      }
+      if (sevBadge) {
+        sevBadge.textContent = d.severity;
+        sevBadge.className = `badge-severity severity-${d.severityLevel || "medium"}`;
+      }
+    }
 
     // Display Differential Diagnosis Alert if borderline overlap detected
     const diffBox = document.getElementById("resDifferentialBox");
@@ -512,10 +541,6 @@ class DogSkinClientEngine {
     } else {
       if (diffBox) diffBox.style.display = "none";
     }
-
-    const sevBadge = document.getElementById("resSeverityBadge");
-    sevBadge.textContent = d.severity;
-    sevBadge.className = `badge-severity severity-${d.severityLevel || "medium"}`;
 
     const confVal = `${data.confidence}%`;
     document.getElementById("resConfidenceVal").textContent = confVal;
