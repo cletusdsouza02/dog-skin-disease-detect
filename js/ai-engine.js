@@ -352,6 +352,44 @@ class DogSkinClientEngine {
   }
 
   /**
+   * Programmatically switches to a specific numbered topic tab
+   * (1. Symptoms, 2. Causes, 3. Treatment, 4. Prevention)
+   */
+  showTopicTab(topicName) {
+    // Ensure tabs mode is active first
+    this.switchTopicView("tabs");
+
+    const tabBtn = document.getElementById(`${topicName}-tab`);
+    const pane = document.getElementById(`${topicName}-pane`);
+
+    if (tabBtn) {
+      if (window.bootstrap && window.bootstrap.Tab) {
+        try {
+          const tabObj = bootstrap.Tab.getOrCreateInstance(tabBtn);
+          tabObj.show();
+        } catch (e) {
+          tabBtn.click();
+        }
+      } else {
+        tabBtn.click();
+      }
+    }
+
+    // Direct DOM fallback if Bootstrap tab transitions are suppressed
+    const allTabs = document.querySelectorAll("#resultTabs .nav-link");
+    allTabs.forEach(t => t.classList.remove("active"));
+    if (tabBtn) tabBtn.classList.add("active");
+
+    const allPanes = document.querySelectorAll("#resultTabsContent .tab-pane");
+    allPanes.forEach(p => {
+      p.classList.remove("show", "active");
+    });
+    if (pane) {
+      pane.classList.add("show", "active");
+    }
+  }
+
+  /**
    * Helper to build structured HTML for any of the 4 clinical topics
    */
   renderTopicCard(topicKey, topicData, fallbackItems, defaultTitle, defaultIcon, defaultColor) {

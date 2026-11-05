@@ -393,30 +393,34 @@
               <!-- Clinical Details Tabs Selector (Tabs Mode) -->
               <ul class="nav nav-pills nav-fill mb-3 gap-2" id="resultTabs" role="tablist">
                 <li class="nav-item">
-                  <button class="nav-link active rounded-pill py-2" id="symptoms-tab" data-bs-toggle="tab"
-                    data-bs-target="#symptoms-pane" type="button">
+                  <button class="nav-link active rounded-pill py-2 fw-semibold" id="symptoms-tab" data-bs-toggle="tab"
+                    data-bs-target="#symptoms-pane" type="button" onclick="AI_ENGINE.showTopicTab('symptoms')">
+                    <span class="badge bg-danger text-white me-1">1</span>
                     <i class="fa-solid fa-stethoscope me-1 text-danger"></i> Symptoms
                     <span class="badge bg-danger bg-opacity-25 text-danger ms-1" id="symptomsCountBadge">5</span>
                   </button>
                 </li>
                 <li class="nav-item">
-                  <button class="nav-link rounded-pill py-2" id="causes-tab" data-bs-toggle="tab"
-                    data-bs-target="#causes-pane" type="button">
+                  <button class="nav-link rounded-pill py-2 fw-semibold" id="causes-tab" data-bs-toggle="tab"
+                    data-bs-target="#causes-pane" type="button" onclick="AI_ENGINE.showTopicTab('causes')">
+                    <span class="badge bg-warning text-dark me-1">2</span>
                     <i class="fa-solid fa-circle-exclamation me-1 text-warning"></i> Causes
                     <span class="badge bg-warning bg-opacity-25 text-warning ms-1" id="causesCountBadge">4</span>
                   </button>
                 </li>
                 <li class="nav-item">
-                  <button class="nav-link rounded-pill py-2" id="treatment-tab" data-bs-toggle="tab"
-                    data-bs-target="#treatment-pane" type="button">
+                  <button class="nav-link rounded-pill py-2 fw-semibold" id="treatment-tab" data-bs-toggle="tab"
+                    data-bs-target="#treatment-pane" type="button" onclick="AI_ENGINE.showTopicTab('treatment')">
+                    <span class="badge bg-success text-white me-1">3</span>
                     <i class="fa-solid fa-kit-medical me-1 text-success"></i> Treatment
                     <span class="badge bg-success bg-opacity-25 text-success ms-1" id="treatmentCountBadge">5</span>
                   </button>
                 </li>
                 <li class="nav-item">
-                  <button class="nav-link rounded-pill py-2" id="prevention-tab" data-bs-toggle="tab"
-                    data-bs-target="#prevention-pane" type="button">
-                    <i class="fa-solid fa-shield-cat me-1 text-info"></i> Prevention
+                  <button class="nav-link rounded-pill py-2 fw-semibold" id="prevention-tab" data-bs-toggle="tab"
+                    data-bs-target="#prevention-pane" type="button" onclick="AI_ENGINE.showTopicTab('prevention')">
+                    <span class="badge bg-info text-dark me-1">4</span>
+                    <i class="fa-solid fa-shield-dog me-1 text-info"></i> Prevention
                     <span class="badge bg-info bg-opacity-25 text-info ms-1" id="preventionCountBadge">4</span>
                   </button>
                 </li>
